@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Đánh giá Phát âm Tiếng Trung</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 16px;
+            background-color: #fff;
+        }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+        .btn-record {
+            background-color: #ef4444;
+        }
+        .btn-record:hover {
+            background-color: #dc2626;
+        }
+        .btn-record.recording {
+            animation: pulse 1.5s infinite;
+            background-color: #b91c1c;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        .question-box {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border-left: 5px solid var(--primary);
+            display: none;
+        }
+        .chinese-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+        .pinyin-text {
+            font-size: 16px;
+            color: #64748b;
+            font-style: italic;
+            margin-bottom: 5px;
+        }
+        .vietnamese-text {
+            font-size: 16px;
+            color: #334155;
+        }
+        .result-box {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #fafafa;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+        .score {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .audio-practice {
+            display: inline-flex;
+            align-items: center;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .audio-practice:hover {
+            background: #fca5a5;
+        }
+        .audio-icon {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>AI Luyện Phát Âm Tiếng Trung Bản Xứ</h1>
+    
+    <div class="section">
+        <label for="topicSelect">Chọn chủ đề học tập:</label>
+        <select id="topicSelect">
+            <option value="1">1. Chào hỏi & Thông tin cá nhân</option>
+            <option value="2">2. Gia đình & Bạn bè</option>
+            <option value="3">3. Thói quen hàng ngày</option>
+            <option value="4">4. Sở thích & Thời gian rảnh</option>
+            <option value="5">5. Đồ ăn & Thức uống</option>
+            <option value="6">6. Công việc & Học tập</option>
+            <option value="7">7. Du lịch & Di chuyển</option>
+            <option value="8">8. Thời tiết & Thiên nhiên</option>
+            <option value="9">9. Mua sắm & Quần áo</option>
+            <option value="10">10. Sức khỏe & Cảm xúc</option>
+        </select>
+        <button class="btn" onclick="startNewQuestion()">Bắt đầu hỏi / Câu tiếp theo</button>
+    </div>
+
+    <div id="questionBox" class="question-box">
+        <div style="font-size: 14px; color: #64748b; margin-bottom: 5px; font-weight: bold;">HỆ THỐNG HỎI:</div>
+        <div class="chinese-text" id="qChinese"></div>
+        <div class="pinyin-text" id="qPinyin"></div>
+        <div class="vietnamese-text" id="qVietnamese"></div>
+        
+        <hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 15px 0;">
+        <button class="btn btn-record" id="recordBtn" onclick="toggleRecording()">Bấm vào đây để Trả lời (Phát âm)</button>
+    </div>
+
+    <div id="resultBox" class="result-box">
+        <h3>Kết quả phân tích:</h3>
+        <p><strong>Nội dung bạn vừa nói:</strong> <span id="spokenText" style="color: #4f46e5; font-size: 18px; font-weight: bold;"></span></p>
+        <div class="score" id="scoreValue"></div>
+        <div id="practiceContainer"></div>
+    </div>
+</div>
+
+<script>
+    // DỮ LIỆU ĐÃ ĐƯỢC CHUẨN HÓA VÀ FIX CÁC LỖI GÕ NHẦM KÝ TỰ TIẾNG ANH THỪA
+    const qaData = {
+        "1": [
+            { cn: "你叫什么名字？", py: "Nǐ jiào shénme míngzi?", vi: "Bạn tên là gì？" },
+            { cn: "你今天怎么样？", py: "Nǐ jīntiān zěnmeyàng?", vi: "Hôm nay bạn thế nào？" },
+            { cn: "你是从哪儿来的？", py: "Nǐ shì cóng nǎr lái de?", vi: "Bạn đến từ đâu？" },
+            { cn: "你住在哪里？", py: "Nǐ zhù zài nǎlǐ?", vi: "Bạn sống ở đâu？" },
+            { cn: "你今年多大了？", py: "Nǐ jīnnián duōdà le?", vi: "Bạn năm nay bao nhiêu tuổi？" },
+            { cn: "你的生日是什么时候？", py: "Nǐ de shēngrì shì shénme shíhou?", vi: "Sinh nhật bạn khi nào？" },
+            { cn: "你的电话号码是多少？", py: "Nǐ de diànhuà hàomǎ shì duōshǎo?", vi: "Số điện thoại của bạn là gì？" },
+            { cn: "你的电子邮箱是什么？", py: "Nǐ de diànzǐ yóuxiāng shì shénme?", vi: "Địa chỉ email của bạn là gì？" },
+            { cn: "你单身还是结婚了？", py: "Nǐ dānshēn háishi jiéhūn le?", vi: "Bạn độc thân hay đã kết hôn？" },
+            { cn: "你养宠物吗？", py: "Nǐ yǎng chǒngwù ma?", vi: "Bạn có nuôi thú cưng không？" },
+            { cn: "很高兴认识你，你呢？", py: "Hěn gāoxìng rènshi nǐ, nǐ ne?", vi: "Rất vui được gặp bạn, còn bạn？" },
+            { cn: "你的名字怎么拼？", py: "Nǐ de míngzi zěnme pīn?", vi: "Tên của bạn đánh vần thế nào？" },
+            { cn: "你姓什么？", py: "Nǐ xìng shénme?", vi: "Bạn họ gì？" },
+            { cn: "你和谁住在一起？", py: "Nǐ hé shéi zhù zài yīqǐ?", vi: "Bạn sống cùng với ai？" },
+            { cn: "你住房子还是公寓？", py: "Nǐ zhù fángzi háishi gōngyù?", vi: "Bạn sống ở nhà đất hay chung cư？" },
+            { cn: "你是什么国籍？", py: "Nǐ shì shénme guójí?", vi: "Quốc tịch của bạn là gì？" },
+            { cn: "快今天过得好吗？", py: "Nǐ jīntiān guò de hǎo ma?", vi: "Hôm nay của bạn tốt chứ？" },
+            { cn: "你会说英语吗？", py: "Nǐ huì shuō Yīngyǔ ma?", vi: "Bạn có biết nói tiếng Anh không？" },
+            { cn: "你会说几种语言？", py: "Nǐ huì shuō jǐ zhǒng yǔyán?", vi: "Bạn nói được mấy thứ tiếng？" },
+            { cn: "你是在哪儿出生的？", py: "Nǐ shì zài nǎr chūshēng de?", vi: "Bạn sinh ra ở đâu？" }
+        ],
+        "2": [
+            { cn: "你家有几口人？", py: "Nǐ jiā yǒu jǐ kǒu rén?", vi: "Nhà bạn có mấy người？" },
+            { cn: "你有兄弟姐妹吗？", py: "Nǐ yǒu xiōngdì jiěmèi ma?", vi: "Bạn có anh chị em không？" },
+            { cn: "你妈妈叫什么名字？", py: "Nǐ māma jiào shénme míngzi?", vi: "Mẹ bạn tên là gì？" },
+            { cn: "你爸爸今年多大年纪？", py: "Nǐ bàba jīnnián duōdà niánjì?", vi: "Bố bạn năm nay bao nhiêu tuổi？" },
+            { cn: "你哥哥做什么工作？", py: "Nǐ gēge zuò shénme gōngzuò?", vi: "Anh trai bạn làm nghề gì？" },
+            { cn: "你和父母的关系好吗？", py: "Nǐ hé fùmǔ de guānxi hǎo ma?", vi: "Bạn có thân với bố mẹ không？" },
+            { cn: "谁是你最好的朋友？", py: "Shéi shì nǐ zuì hǎo de péngyou?", vi: "Ai là người bạn thân nhất của bạn？" },
+            { cn: "你和你最好的朋友是怎么认识的？", py: "Nǐ hé nǐ zuì hǎo de péngyou shì zěnme rènshi de?", vi: "Bạn và bạn thân gặp nhau như thế nào？" },
+            { cn: "你经常去看爷爷奶奶吗？", py: "Nǐ jīngcháng qù kàn yéye nǎinai?", vi: "Bạn có thường đi thăm ông bà không？" },
+            { cn: "这是一个大家庭吗？", py: "Zhè edits yīgè dà jiātíng ma?", vi: "Đó có phải là một đại gia đình không？" },
+            { cn: "周末你和家人一起做什么？", py: "Zhōumò nǐ hé jiārén yīqǐ zuò shénme?", vi: "Cuối tuần bạn làm gì cùng gia đình？" },
+            { cn: "你的家人热情吗？", py: "Nǐ de jiārén rèqíng ma?", vi: "Gia đình bạn có mến khách/thân thiện không？" },
+            { cn: "你长得像爸爸还是像妈妈？", py: "Nǐ zhǎng de xiàng bàba háishi xiàng māma?", vi: "Bạn trông giống bố hay giống mẹ hơn？" },
+            { cn: "你是独生子女吗？", py: "Nǐ shì dúshēng zǐnǚ ma?", vi: "Bạn có phải là con một không？" },
+            { cn: "你多久见一次朋友？", py: "Nǐ duōjiǔ jiàn yīcì péngyou?", vi: "Bao lâu bạn gặp bạn bè một lần？" },
+            { cn: "你平时和朋友一起做什么？", py: "Nǐ píngshí hé péngyou yīqǐ zuò shénme?", vi: "Ngày thường bạn và bạn bè hay làm gì cùng nhau？" },
+            { cn: "你有外国朋友吗？", py: "Nǐ yǒu wàiguó péngyou ma?", vi: "Bạn có bạn người nước ngoài không？" },
+            { cn: "你的朋友幽默吗？", py: "Nǐ de péngyou yōumò ma?", vi: "Bạn bè của bạn có hài hước không？" },
+            { cn: "在你家谁做饭？", py: "Zài nǐ jiā shéi zuò fàn?", vi: "Ở nhà bạn ai là người nấu ăn？" },
+            { cn: "你爱你的家人吗？", py: "Nǐ ài nǐ de jiārén ma?", vi: "Bạn có yêu gia đình mình không？" }
+        ],
+        "3": [
+            { cn: "你几点起来？", py: "Nǐ jǐdiǎn qǐlái?", vi: "Bạn thức dậy lúc mấy giờ？" },
+            { cn: "你起得早吗？", py: "Nǐ qǐ de zǎo ma?", vi: "Bạn có dậy sớm không？" },
+            { cn: "你早餐经常吃什么？", py: "Nǐ zǎocān jīngcháng chī shénme?", vi: "Bữa sáng bạn thường ăn gì？" },
+            { cn: "你早上喝咖啡吗？", py: "Nǐ zǎoshang hē kāfēi ma?", vi: "Buổi sáng bạn có uống cà phê không？" },
+            { cn: "你几点去上班/上学？", py: "Nǐ jǐdiǎn qù shàngbān/shàngxué?", vi: "Mấy giờ bạn đi làm/đi học？" },
+            { cn: "你怎么去上班/上学？", py: "Nǐ zěnme qù shàngbān/shàngxué?", vi: "Bạn đi làm/đi học bằng phương tiện gì？" },
+            { cn: "你早上做什么？", py: "Nǐ zǎoshang zuò shénme?", vi: "Buổi sáng bạn làm những gì？" },
+            { cn: "你在哪里吃午饭？", py: "Nǐ zài nǎlǐ chī wǔfàn?", vi: "Bạn ăn trưa ở đâu？" },
+            { cn: "你和谁一起吃午饭？", py: "Nǐ hé shéi yīqǐ chī wǔfàn?", vi: "Bạn ăn trưa cùng với ai？" },
+            { cn: "你几点下班/放学？", py: "Nǐ jǐdiǎn xiàbān/fàngxué?", vi: "Mấy giờ bạn tan làm/tan học？" },
+            { cn: "你晚上做什么？", py: "Nǐ wǎnshang zuò shénme?", vi: "Buổi tối bạn làm gì？" },
+            { cn: "晚饭后你看电视吗？", py: "Wǎnfàn hòu nǐ kàn diànshì ma?", vi: "Sau bữa tối bạn có xem tivi không？" },
+            { cn: "你什么时候做作业？", py: "Nǐ shénme shíhou zuò zuòyè?", vi: "Khi nào thì bạn làm bài tập về nhà？" },
+            { cn: "你每天都运动吗？", py: "Nǐ měitiān dōu yùndòng ma?", vi: "Ngày nào bạn cũng tập thể dục à？" },
+            { cn: "你几点吃晚饭？", py: "Nǐ jǐdiǎn chī wǎnfàn?", vi: "Bạn ăn tối lúc mấy giờ？" },
+            { cn: "你自己做晚饭吗？", py: "Nǐ zìjǐ zuò wǎnfàn ma?", vi: "Bạn có tự nấu bữa tối không？" },
+            { cn: "睡觉前你做什么？", py: "Shuìjiào qián nǐ zuò shénme?", vi: "Trước khi đi ngủ bạn làm gì？" },
+            { cn: "你几点睡觉？", py: "Nǐ jǐdiǎn shuìjiào?", vi: "Bạn đi ngủ lúc mấy giờ？" },
+            { cn: "你睡得好吗？", py: "Nǐ shuì de hǎo ma?", vi: "Bạn ngủ có ngon không？" },
+            { cn: "你周末做什么？", py: "Nǐ zhōumò zuò shénme?", vi: "Cuối tuần bạn làm gì？" }
+        ],
+        "4": [
+            { cn: "你的爱好是什么？", py: "Nǐ de àihào shì shénme?", vi: "Sở thích của bạn là gì？" },
+            { cn: "有空的时候你做什么？", py: "Yǒukòng de shíhou nǐ zuò shénme?", vi: "Khi rảnh rỗi bạn làm gì？" },
+            { cn: "你喜欢听音乐吗？", py: "Nǐ xǐhuan tīng yīnyuè ma?", vi: "Bạn có thích nghe nhạc không？" },
+            { cn: "你喜欢什么音乐？", py: "Nǐ xǐhuan shénme yīnyuè?", vi: "Bạn thích loại nhạc nào？" },
+            { cn: "你会弹吉他吗？", py: "Nǐ huì tán jítā ma?", vi: "Bạn có biết chơi guitar không？" },
+            { cn: "你喜欢看书吗？", py: "Nǐ xǐhuan kànshū ma?", vi: "Bạn có thích đọc sách không？" },
+            { cn: "你最喜欢哪本书？", py: "Nǐ zuì xǐhuan nǎ běn shū?", vi: "Bạn thích cuốn sách nào nhất？" },
+            { cn: "你喜欢看电影吗？", py: "Nǐ xǐhuan kàn diànyǐng ma?", vi: "Bạn có thích xem phim không？" },
+            { cn: "你最喜欢什么电影？", py: "Nǐ zuì xǐhuan shénme diànyǐng?", vi: "Bộ phim yêu thích của bạn là gì？" },
+            { cn: "你做运动吗？", py: "Nǐ zuò yùndòng ma?", vi: "Bạn có chơi thể thao không？" },
+            { cn: "你喜欢什么运动？", py: "Nǐ xǐhuan shénme yùndòng?", vi: "Bạn thích môn thể thao nào？" },
+            { cn: "你玩电脑游戏吗？", py: "Nǐ wán diànnǎo yóuxì ma?", vi: "Bạn có chơi game máy tính không？" },
+            { cn: "你喜欢拍照吗？", py: "Nǐ xǐhuan pāizhào ma?", vi: "Bạn có thích chụp ảnh không？" },
+            { cn: "你经常去电影院吗？", py: "Nǐ jīngcháng qù diànyǐngyuàn ma?", vi: "Bạn có thường đến rạp chiếu phim không？" },
+            { cn: "快喜欢去园艺吗？", py: "Nǐ xǐhuan yuányì ma?", vi: "Bạn có thích làm vườn không？" },
+            { cn: "你会唱歌吗？", py: "Nǐ huì chànggē ma?", vi: "Bạn có biết hát không？" },
+            { cn: "你喜欢跳舞吗？", py: "Nǐ xǐhuan tiàowǔ ma?", vi: "Bạn có thích nhảy múa không？" },
+            { cn: "你经常和谁一起出去玩？", py: "Nǐ jīngcháng hé shéi yīqǐ chūqù wán?", vi: "Bạn thường đi chơi với ai？" },
+            { cn: "你收集什么东西吗？", py: "Nǐ shōují shénme dōngxi ma?", vi: "Bạn có sưu tầm thứ gì không？" },
+            { cn: "你喜欢画画吗？", py: "Nǐ xǐhuan huàhuà ma?", vi: "Bạn có thích vẽ tranh không？" }
+        ],
+        "5": [
+            { cn: "你最喜欢吃什么？", py: "Nǐ zuì xǐhuan chī shénme?", vi: "Bạn thích ăn món gì nhất？" },
+            { cn: "你喜欢快餐吗？", py: "Nǐ xǐhuan kuàicān ma?", vi: "Bạn có thích đồ ăn nhanh không？" },
+            { cn: "你喜欢喝什么？", py: "Nǐ xǐhuan hē shénme?", vi: "Bạn thích uống gì？" },
+            { cn: "你会做饭吗？", py: "Nǐ huì zuò fàn ma?", vi: "Bạn có biết nấu ăn không？" },
+            { cn: "你经常在外边吃饭吗？", py: "Nǐ jīngcháng zài wàibian chīfàn ma?", vi: "Bạn có thường ăn tiệm không？" },
+            { cn: "你最喜欢哪家饭馆？", py: "Nǐ zuì xǐhuan nǎ jiā fànguǎn?", vi: "Bạn thích nhà hàng nào nhất？" },
+            { cn: "你吃蔬菜吗？", py: "Nǐ chī shūcài ma?", vi: "Bạn có ăn rau không？" },
+            { cn: "你喜欢吃辣的吗？", py: "Nǐ xǐhuan chī là de ma?", vi: "Bạn có thích ăn cay không？" },
+            { cn: "你早饭吃什么？", py: "Nǐ zǎofàn chī shénme?", vi: "Bạn ăn gì cho bữa sáng？" },
+            { cn: "你喜欢吃甜的还是咸的？", py: "Nǐ xǐhuan chī tián de háishi xián de?", vi: "Bạn thích ăn đồ ngọt hay đồ mặn？" },
+            { cn: "你喝茶还是喝咖啡？", py: "Nǐ hē chá háishi hē kāfēi?", vi: "Bạn uống trà hay uống cà phê？" },
+            { cn: "你最喜欢什么水果？", py: "Nǐ zuì xǐhuan ...", vi: "Loại quả yêu thích của bạn là gì？" },
+            { cn: "你喜欢吃冰激凌吗？", py: "Nǐ xǐhuan chī bīngjīlíng ma?", vi: "Bạn có thích ăn kem không？" },
+            { cn: "你吃过寿司吗？", py: "Nǐ chīguo shòusī ma?", vi: "Bạn đã từng ăn sushi chưa？" },
+            { cn: "你家谁做饭最好吃？", py: "Nǐ jiā shéi zuò fàn zuì hǎo chī?", vi: "Nhà bạn ai nấu ăn ngon nhất？" },
+            { cn: "你吃健康食品吗？", py: "Nǐ chī jiànkāng shípǐn ma?", vi: "Bạn có ăn thực phẩm lành mạnh không？" },
+            { cn: "你一天喝多少水？", py: "Nǐ yītiān hē duōshǎo shuǐ?", vi: "Một ngày bạn uống bao nhiêu nước？" },
+            { cn: "你喜欢巧克力吗？", py: "Nǐ xǐhuan qiǎokèlì ma?", vi: "Bạn có thích sô-cô-la không？" },
+            { cn: "你最喜欢的甜点是什么？", py: "Nǐ zuì xǐhuan de tiándiǎn shì shénme?", vi: "Món tráng miệng yêu thích của bạn là gì？" },
+            { cn: "你吃肉吗？", py: "Nǐ chī ròu ma?", vi: "Bạn có ăn thịt không？" }
+        ],
+        "6": [
+            { cn: "你的工作是什么？", py: "Nǐ de gōngzuò shì shénme?", vi: "Công việc của bạn là gì？" },
+            { cn: "你是学生吗？", py: "Nǐ shì xuésheng ma?", vi: "Bạn có phải là học sinh/sinh viên không？" },
+            { cn: "你在哪里工作？", py: "Nài zài nǎlǐ gōngzuò?", vi: "Bạn làm việc ở đâu？" },
+            { cn: "你喜欢你的工作吗？", py: "Nǐ xǐhuan nǐ de gōngzuò ma?", vi: "Bạn có thích công việc của mình không？" },
+            { cn: "你最喜欢什么科目？", py: "Nǐ zuì xǐhuan shénme kēmù?", vi: "Môn học yêu thích của bạn là gì？" },
+            { cn: "你喜欢学汉语吗？", py: "Nǐ xǐhuan xué Hànyǔ ma?", vi: "Bạn có thích học tiếng Trung không？" },
+            { cn: "你的工作累吗？", py: "Nǐ de gōngzuò lèi ma?", vi: "Công việc của bạn có mệt không？" },
+            { cn: "你每天工作几个小时？", py: "Nǐ měitiān gōngzuò jǐ gè xiǎoshí?", vi: "Mỗi ngày bạn làm việc mấy tiếng？" },
+            { cn: "你周末加班吗？", py: "Nǐ zhōumò jiābān ma?", vi: "Cuối tuần bạn có làm thêm giờ không？" },
+            { cn: "你最喜欢哪个老师？", py: "Nǐ zuì xǐhuan nǎgè lǎoshī?", vi: "Bạn thích giáo viên nào nhất？" },
+            { cn: "你们几点上课？", py: "Nǐmen jǐdiǎn shàngkè?", vi: "Mấy giờ các bạn vào học？" },
+            { cn: "你的作业多吗？", py: "Nǐ de zuòyè duō ma?", vi: "Bài tập về nhà của bạn có nhiều không？" },
+            { cn: "你们学校/公司大吗？", py: "Nǐmen xuéxiào/gōngsī dà ma?", vi: "Trường học/Công ty của các bạn có to không？" },
+            { cn: "你上班用电脑吗？", py: "Nǐ shàngbān yòng diànnǎo ma?", vi: "Bạn đi làm có dùng máy tính không？" },
+            { cn: "你将来想做什么？", py: "Nǐ jiānglái xiǎng zuò shénme?", vi: "Tương lai bạn muốn làm gì？" },
+            { cn: "你的同事友好吗？", py: "Nǐ de tóngshì yǒuhǎo ma?", vi: "Đồng nghiệp của bạn có thân thiện không？" },
+            { cn: "你晚上学习吗？", py: "Nǐ wǎnshang xuéxí ma?", vi: "Buổi tối bạn có học bài không？" },
+            { cn: "你怎么去学校/公司？", py: "Nǐ zěnme qù xuéxiào/gōngsī?", vi: "Bạn đến trường/công ty bằng cách nào？" },
+            { cn: "你今天有会吗？", py: "Nǐ jīntiān yǒu huì ma?", vi: "Hôm nay bạn có cuộc họp nào không？" },
+            { cn: "你今天忙吗？", py: "Nǐ jīntiān máng ma?", vi: "Hôm nay bạn có bận không？" }
+        ],
+        "7": [
+            { cn: "你喜欢旅游吗？", py: "Nǐ xǐhuan lǚyóu ma?", vi: "Bạn có thích đi du lịch không？" },
+            { cn: "去年夏天你去哪儿了？", py: "Qùnián xiàtiān nǐ qù nǎr le?", vi: "Mùa hè năm ngoái bạn đã đi đâu？" },
+            { cn: "你更喜欢海滩还是山？", py: "Nǐ gèng xǐhuan hǎitān háishi shān?", vi: "Bạn thích bãi biển hay vùng núi hơn？" },
+            { cn: "你去过国外吗？", py: "Nǐ qùguo guówài ma?", vi: "Bạn đã từng đi nước ngoài chưa？" },
+            { cn: "你经常坐公交车吗？", py: "Nǐ jīngcháng zuò gōngjiāochē ma?", vi: "Bạn có thường đi xe buýt không？" },
+            { cn: "你会开车吗？", py: "Nǐ huì kāichē ma?", vi: "Bạn có biết lái xe ô tô không？" },
+            { cn: "你有摩托车吗？", py: "Nǐ yǒu mótuōchē ma?", vi: "Bạn có xe máy không？" },
+            { cn: "你平时怎么出行？", py: "Nǐ píngshí zěnme chūxíng?", vi: "Thường ngày bạn di chuyển bằng gì？" },
+            { cn: "你喜欢坐飞机吗？", py: "Nǐ xǐhuan zuò fēijī ma?", vi: "Bạn có thích đi máy bay không？" },
+            { cn: "你最喜欢哪个城市？", py: "Nǐ zuì xǐhuan nǎgè chéngshì?", vi: "Bạn thích thành phố nào nhất？" },
+            { cn: "你经常和谁一起去旅游？", py: "Nǐ jīngcháng hé shéi yīqǐ qù lǚyóu?", vi: "Bạn thường đi du lịch cùng ai？" },
+            { cn: "你住酒店吗？", py: "Nǐ zhù jiǔdiàn ma?", vi: "Bạn có ở khách sạn không？" },
+            { cn: "你去过博物馆吗？", py: "Nǐ qùguo bówùguǎn ma?", vi: "Bạn đã từng đi bảo tàng chưa？" },
+            { cn: "你喜欢坐火车吗？", py: "Nǐ xǐhuan zuò huǒchē ma?", vi: "Bạn có thích đi tàu hỏa không？" },
+            { cn: "你们城市的交通堵塞严重吗？", py: "Nǐmen chéngshì de jiāotōng dǔsè yánzhòng ma?", vi: "Giao thông ở thành phố bạn có tắc nghẽn nghiêm trọng không？" },
+            { cn: "去上班需要多长时间？", py: "Qù shàngbān xūyào duō cháng shíjiān?", vi: "Đi làm mất bao lâu？" },
+            { cn: "你打车吗？", py: "Nǐ dǎchē ma?", vi: "Bạn có gọi xe taxi không？" },
+            { cn: "你想去哪个国家看看？", py: "Nǐ xiǎng qù nǎgè guójiā kànkan?", vi: "Bạn muốn đi tham quan quốc gia nào？" },
+            { cn: "你喜欢长途还是短途旅行？", py: "Nǐ xǐhuan chángtú háishi duǎntú lǚxíng?", vi: "Bạn thích những chuyến đi dài ngày hay ngắn ngày？" },
+            { cn: "旅游的时候你拍照吗？", py: "Lǚyóu de shíhou nǐ pāizhào ma?", vi: "Khi đi du lịch bạn có chụp ảnh không？" }
+        ],
+        "8": [
+            { cn: "今天天气怎么样？", py: "Jīntiān tiānqì zěnmeyàng?", vi: "Thời tiết hôm nay thế nào？" },
+            { cn: "你喜欢下雨吗？", py: "Nǐ xǐhuan xiàyǔ ma?", vi: "Bạn có thích trời mưa không？" },
+            { cn: "你最喜欢哪个季节？", py: "Nǐ zuì xǐhuan nǎgè jìjié?", vi: "Bạn thích mùa nào nhất？" },
+            { cn: "今天热吗？", py: "Jīntiān rè ma?", vi: "Hôm nay trời nóng không？" },
+            { cn: "你喜欢雪吗？", py: "Nǐ xǐhuan xuě ma?", vi: "Bạn có thích tuyết không？" },
+            { cn: "你们国家下雪吗？", py: "Nǐmen guójiā xiàxuě ma?", vi: "Đất nước của bạn có tuyết rơi không？" },
+            { cn: "你喜欢夏天还是冬天？", py: "Nǐ xǐhuan xiàtiān háishi dōngtiān?", vi: "Bạn thích mùa hè hay mùa đông？" },
+            { cn: "你喜欢晴天吗？", py: "Nǐ xǐhuan qíngtiān ma?", vi: "Bạn có thích ngày nắng không？" },
+            { cn: "你怕刮暴风雨吗？", py: "Nǐ pà guā bàofēngyǔ ma?", vi: "Bạn có sợ giông bão không？" },
+            { cn: "你喜欢去公园吗？", py: "Nǐ xǐhuan qù gōngyuán ma?", vi: "Bạn có thích đi công viên không？" },
+            { cn: "你家里养植物吗？", py: "Nǐ jiālǐ yǎng zhíwù ma?", vi: "Trong nhà bạn có trồng cây xanh không？" },
+            { cn: "你最喜欢什么动物？", py: "Nǐ zuì xǐhuan shénme dòngwù?", vi: "Bạn thích con vật nào nhất？" },
+            { cn: "你喜欢大海吗？", py: "Nǐ xǐhuan dàhǎi ma?", vi: "Bạn có thích biển lớn không？" },
+            { cn: "你喜欢森林吗？", py: "Nǐ xǐhuan sēnlín ma?", vi: "Bạn có thích rừng rậm không？" },
+            { cn: "你们城市冷吗？", py: "Nǐmen chéngshì lěng ma?", vi: "Thành phố của bạn có lạnh không？" },
+            { cn: "你看天气预报吗？", py: "Nǐ kàn tiānqì yùbào ma?", vi: "Bạn có xem dự báo thời tiết không？" },
+            { cn: "下雨天你做什么？", py: "Xiàyǔtiān nǐ zuò shénme?", vi: "Ngày mưa bạn hay làm gì？" },
+            { cn: "晴天你穿什么？", py: "Qíngtiān nǐ chuān shénme?", vi: "Ngày nắng bạn mặc gì？" },
+            { cn: "你们城市树多吗？", py: "Nǐmen chéngshì shù duō ma?", vi: "Thành phố của bạn có nhiều cây không？" },
+            { cn: "你喜欢听鸟叫吗？", py: "Nǐ xǐhuan tiàoniǎojiào ma?", vi: "Bạn có thích nghe tiếng chim hót không？" }
+        ],
+        "9": [
+            { cn: "你喜欢逛街吗？", py: "Nǐ xǐhuan guàngjiē ma?", vi: "Bạn có thích đi mua sắm không？" },
+            { cn: "你经常去买东西吗？", py: "Nǐ jīngcháng qù mǎi dōngxi ma?", vi: "Bạn có thường đi mua đồ không？" },
+            { cn: "你在哪儿买衣服？", py: "Nǐ zài nǎr mǎi yīfu?", vi: "Bạn mua quần áo ở đâu？" },
+            { cn: "你最喜欢什么颜色？", py: "Nǐ zuì xǐhuan shénme yánsè?", vi: "Bạn thích màu gì nhất？" },
+            { cn: "你喜欢穿牛仔裤吗？", py: "Nǐ xǐhuan chuān niúzǎikù ma?", vi: "Bạn có thích mặc quần jeans không？" },
+            { cn: "你今天穿什么？", py: "Nǐ jīntiān chuān shénme?", vi: "Hôm nay bạn mặc gì？" },
+            { cn: "你穿制服吗？", py: "Nǐ chuān zhìfú ma?", vi: "Bạn có mặc đồng phục không？" },
+            { cn: "你喜欢穿连衣裙吗？", py: "Nǐ xǐhuan chuān liányīqún ma?", vi: "Bạn có thích mặc váy liền không？" },
+            { cn: "你们城市的衣服贵吗？", py: "Nǐmen chéngshì de yīfu guì ma?", vi: "Quần áo ở thành phố bạn có đắt không？" },
+            { cn: "你更喜欢网购吗？", py: "Nǐ gèng xǐhuan wǎnggòu ma?", vi: "Bạn thích mua hàng online hơn phải không？" },
+            { cn: "你喜欢买鞋吗？", py: "Nǐ xǐhuan mǎi xié ma?", vi: "Bạn có thích mua giày không？" },
+            { cn: "你上班穿什么衣服？", py: "Nǐ shàngbān chuān shénme yīfu?", vi: "Bạn mặc đồ gì khi đi làm？" },
+            { cn: "你去超市吗？", py: "Nǐ qù chāoshì ma?", vi: "Bạn có đi siêu thị không？" },
+            { cn: "你和谁一起去买东西？", py: "Nǐ hé shéi yīqǐ qù mǎi dōngxi?", vi: "Bạn đi mua sắm cùng ai？" },
+            { cn: "你喜欢戴帽子吗？", py: "Nǐ xǐhuan dài màozi ma?", vi: "Bạn có thích đội mũ không？" },
+            { cn: "你穿多大号的？", py: "Nǐ chuān duō dà hào de?", vi: "Bạn mặc size (kích cỡ) nào？" },
+            { cn: "这个多少钱？", py: "Zhège duōshǎo qián?", vi: "Cái này bao nhiêu tiền？" },
+            { cn: "你用现金还是刷卡？", py: "Nǐ yòng xiànjīn háishi shuākǎ?", vi: "Bạn trả tiền mặt hay quẹt thẻ？" },
+            { cn: "你给朋友买礼物吗？", py: "Nǐ gěi péngyou mǎi lǐwù ma?", vi: "Bạn có mua quà cho bạn bè không？" },
+            { cn: "你喜欢时尚吗？", py: "Nǐ xǐhuan shíshàng ma?", vi: "Bạn có thích thời trang không？" }
+        ],
+        "10": [
+            { cn: "你今天感觉怎么样？", py: "Nǐ jīntiān gǎnjué zěnmeyàng?", vi: "Hôm nay bạn cảm thấy thế nào？" },
+            { cn: "你累吗？", py: "Nǐ lèi ma?", vi: "Bạn có mệt không？" },
+            { cn: "你现在开心吗？", py: "Nǐ xiànzài kāixīn ma?", vi: "Bây giờ bạn có vui không？" },
+            { cn: "什么让你微笑？", py: "Shénme ràng nǐ wēixiào?", vi: "Điều gì làm bạn mỉm cười？" },
+            { cn: "你饿吗？", py: "Nǐ è ma?", vi: "Bạn có đói không？" },
+            { cn: "你渴吗？", py: "Nǐ kě ma?", vi: "Bạn có khát không？" },
+            { cn: "你觉得不舒服吗？", py: "Nǐ juéde bù shūfu ma?", vi: "Bạn có thấy khó chịu/ốm không？" },
+            { cn: "你做运动吗？", py: "Nǐ zuò yùndòng ma?", vi: "Bạn có tập thể dục không？" },
+            { cn: "你睡几个小时？", py: "Nǐ shuì jǐ gè xiǎoshí?", vi: "Bạn ngủ mấy tiếng？" },
+            { cn: "你喝酒吗？", py: "Nǐ hējiǔ ma?", vi: "Bạn có uống rượu không？" },
+            { cn: "你抽烟吗？", py: "Nǐ chōuyān ma?", vi: "Bạn có hút thuốc không？" },
+            { cn: "你觉得压力大吗？", py: "Nǐ juéde yālì dà ma?", vi: "Bạn có thấy áp lực/stress không？" },
+            { cn: "你怕蜘蛛吗？", py: "Nǐ pà zhīzhū ma?", vi: "Bạn có sợ nhện không？" },
+            { cn: "你难过的时候做什么？", py: "Nǐ nánguò de shíhou zuò shénme?", vi: "Khi buồn bạn thường làm gì？" },
+            { cn: "你吃维生素吗？", py: "Nǐ chī wéishēngsù ma?", vi: "Bạn có uống vitamin không？" },
+            { cn: "你感冒了吗？", py: "Nǐ gǎnmào le ma?", vi: "Bạn bị cảm lạnh rồi à？" },
+            { cn: "你头疼吗？", py: "Nǐ tóuténg ma?", vi: "Bạn có bị đau đầu không？" },
+            { cn: "你对周末感到兴奋吗？", py: "Nǐ duì zhōumò gǎndào xīngfèn ma?", vi: "Bạn có hào hứng về cuối tuần không？" },
+            { cn: "你在家觉得放松吗？", py: "Nǐ zài jiā juéde fàngsōng ma?", vi: "Ở nhà bạn có thấy thư giãn không？" },
+            { cn: "你关注自己的健康吗？", py: "Nǐ guānzhù zìjǐ de jiànkāng ma?", vi: "Bạn có chú ý đến sức khỏe của mình không？" }
+        ]
+    };
+
+    let currentQuestion = null;
+    let recognition = null;
+    let isRecording = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'zh-CN';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = function() {
+            isRecording = true;
+            const btn = document.getElementById('recordBtn');
+            btn.innerText = "Đang lắng nghe... Hãy nói ngay...";
+            btn.classList.add('recording');
+        };
+
+        recognition.onerror = function(event) {
+            console.error(event.error);
+            alert("Lỗi micro: " + event.error);
+            stopRecordingState();
+        };
+
+        recognition.onend = function() {
+            stopRecordingState();
+        };
+
+        recognition.onresult = function(event) {
+            const resultText = event.results[0][0].transcript;
+            evaluatePronunciation(resultText);
+        };
+    } else {
+        alert("Trình duyệt không hỗ trợ nhận giọng nói. Khuyên dùng Google Chrome!");
+    }
+
+    function stopRecordingState() {
+        isRecording = false;
+        const btn = document.getElementById('recordBtn');
+        btn.innerText = "Bấm vào đây để Trả lời (Phát âm)";
+        btn.classList.remove('recording');
+    }
+
+    function startNewQuestion() {
+        const topicId = document.getElementById('topicSelect').value;
+        const questions = qaData[topicId];
+        const randomIndex = Math.floor(Math.random() * questions.length);
+        currentQuestion = questions[randomIndex];
+
+        document.getElementById('qChinese').innerText = currentQuestion.cn;
+        document.getElementById('qPinyin').innerText = currentQuestion.py;
+        document.getElementById('qVietnamese').innerText = currentQuestion.vi;
+
+        document.getElementById('questionBox').style.display = 'block';
+        document.getElementById('resultBox').style.display = 'none';
+    }
+
+    function toggleRecording() {
+        if (!recognition) return;
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            recognition.start();
+        }
+    }
+
+    function evaluatePronunciation(spokenText) {
+        document.getElementById('resultBox').style.display = 'block';
+        
+        // Làm sạch văn bản để so sánh chính xác tuyệt đối
+        const cleanSpoken = spokenText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()？。，！\s]/g,"").trim();
+        const cleanTarget = currentQuestion.cn.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()？。，！\s]/g,"").trim();
+
+        document.getElementById('spokenText').innerText = spokenText;
+
+        const distance = levenshteinDistance(cleanSpoken, cleanTarget);
+        const maxLength = Math.max(cleanSpoken.length, cleanTarget.length);
+        
+        let scorePercent = 0;
+        if (maxLength > 0) {
+            scorePercent = Math.round(((maxLength - distance) / maxLength) * 100);
+        }
+
+        const scoreDiv = document.getElementById('scoreValue');
+        const practiceContainer = document.getElementById('practiceContainer');
+        practiceContainer.innerHTML = "";
+
+        if (scorePercent >= 90) {
+            scoreDiv.innerHTML = `<span style="color: #16a34a;">Đạt điểm tối đa: ${scorePercent}% (Phát âm chuẩn người bản xứ!)</span>`;
+        } else {
+            scoreDiv.innerHTML = `<span style="color: #d97706;">Chưa đạt tối đa: ${scorePercent}% (Hãy thử nghe lại bản mẫu bên dưới)</span>`;
+            practiceContainer.innerHTML = `
+                <div class="audio-practice" onclick="speakNative('${currentQuestion.cn}')">
+                    <span class="audio-icon">🔊</span> Bấm để nghe phát âm câu mẫu chuẩn
+                </div>
+            `;
+        }
+    }
+
+    function speakNative(text) {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.85; 
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert("Thiết bị không hỗ trợ Text-to-Speech.");
+        }
+    }
+
+    // ĐÃ FIX LỖI CHỈ MỤC THUẬT TOÁN ĐO KHOẢNG CÁCH CHUỖI LEVENSHTEIN
+    function levenshteinDistance(str1, str2) {
+        const track = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+        for (let i = 0; i <= str1.length; i += 1) track[0][i] = i;
+        for (let j = 0; j <= str2.length; j += 1) track[j][0] = j;
+        for (let j = 1; j <= str2.length; j += 1) {
+            for (let i = 1; i <= str1.length; i += 1) {
+                const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+                track[j][i] = Math.min(
+                    track[j][i - 1] + 1, // SỬA TẠI ĐÂY: Sửa "1 - 1" thành "i - 1"
+                    track[j - 1][i] + 1, 
+                    track[j - 1][i - 1] + indicator // SỬA TẠI ĐÂY: Sửa "1 - 1" thành "i - 1"
+                );
+            }
+        }
+        return track[str2.length][str1.length];
+    }
+</script>
+
+</body>
+</html>
